@@ -1,3 +1,10 @@
+from copy import copy
+from functools import reduce
+
+from lexer import to_tokens, Token, TokenType
+from reverse_polish_notation import to_rpn
+from truth_table import make_truth_table
+
 CONJUNCTION = "/\\"
 DISJUNCTION = "\\/"
 
@@ -52,6 +59,156 @@ def make_fdnf(table, variables):
                 vars2.append(f"{variable}")
         constituents.append("(" + CONJUNCTION.join(vars2) + ")")
     return DISJUNCTION.join(constituents)
+
+
+def get_connectives(connective_tokens):
+    connectives = set()
+    it = iter(connective_tokens)
+    connective = None
+    try:
+        while True:
+            token = next(it)
+            if token.type == TokenType.OP_BRACE:
+                connective = set()
+            elif token.type == TokenType.NEG:
+                connective.add(f"!{next(it).value}")
+            elif token.type == TokenType.VAR:
+                connective.add(token.value)
+            elif token.type == TokenType.CL_BRACE:
+                connectives.add(tuple(connective))
+                connective = None
+    except StopIteration:
+        pass
+    return connectives
+
+
+def to_name(atom):
+    if atom[0] == "!":
+        return atom[1:]
+    else:
+        return atom
+
+
+def glue_connectives(connectives):
+    to_glue = copy(connectives)
+    glued = set()
+
+    seen = []
+    for connective1 in to_glue:
+        connective1 = set(connective1)
+        for connective2 in to_glue:
+            connective2 = set(connective2)
+            if connective1 == connective2 or len(connective1) != len(connective2):
+                continue
+            if len(connective1.intersection(connective2)) == len(connective1) - 1 and \
+               reduce(lambda x, y: x == y, (to_name(atom) for atom in connective1.symmetric_difference(connective2))):
+                seen.append(connective1)
+                seen.append(connective2)
+                glued.add(tuple(connective1.intersection(connective2)))
+
+    for connective in to_glue:
+        connective = set(connective)
+        if connective not in seen:
+            glued.add(tuple(connective))
+
+    if connectives == glued:
+        return glued
+    else:
+        return glue_connectives(glued)
+
+
+def remove_extra(connectives, table, formulator):
+
+    for connective in connectives:
+        filtered_connectives = copy(connectives)
+        filtered_connectives.discard(connective)
+
+        if len(filtered_connectives) == 0:
+            continue
+
+        formula = formulator(filtered_connectives)
+
+        tokens, variables = to_tokens(formula)
+        variables = list(sorted(variables))
+        rpn = to_rpn(tokens)
+        tt = make_truth_table(rpn, variables)
+
+        if tt == table:
+            return remove_extra(filtered_connectives, table, formulator)
+
+    return connectives
+
+
+def to_dnf(filtered_connectives):
+    return "(" + ")\\/(".join(("/\\".join(atom for atom in conn) for conn in filtered_connectives)) + ")"
+
+
+def to_cnf(filtered_connectives):
+    return "(" + ")/\\(".join(("\\/".join(atom for atom in conn) for conn in filtered_connectives)) + ")"
+
+
+def make_dednf_calc(table, variables):
+    fdnf = make_fdnf(table, variables)
+    tokens, variables = to_tokens(fdnf)
+
+    connectives = get_connectives(tokens)
+    connectives = glue_connectives(connectives)
+    connectives = remove_extra(connectives, table, to_dnf)
+
+    return to_dnf(connectives)
+
+
+def remove_extra_qmc(connectives, glued_connectives):
+    table = {glued_connective: set() for glued_connective in glued_connectives}
+    for glued_connective in glued_connectives:
+        for connective in connectives:
+            if all(conn in connective for conn in glued_connective):
+                table[glued_connective].add(connective)
+
+    for glued_connective, covered_connectives in table.items():
+        table_copy = copy(table)
+        table_copy.pop(glued_connective)
+        if len(table_copy) != 0:
+            all_covered_connectives = reduce(lambda x, y: x.union(y), table_copy.values())
+        else:
+            all_covered_connectives = []
+        if len(all_covered_connectives) == len(connectives):
+            return remove_extra_qmc(connectives, {key for key in table_copy.keys()})
+
+    return glued_connectives
+
+
+def make_dednf_qmc(table, variables):
+    fdnf = make_fdnf(table, variables)
+    tokens, variables = to_tokens(fdnf)
+
+    connectives = get_connectives(tokens)
+    glued_connectives = glue_connectives(connectives)
+    glued_connectives = remove_extra_qmc(connectives, glued_connectives)
+
+    return to_dnf(glued_connectives)
+
+
+def make_decnf_calc(table, variables):
+    fcnf = make_fcnf(table, variables)
+    tokens, variables = to_tokens(fcnf)
+
+    connectives = get_connectives(tokens)
+    connectives = glue_connectives(connectives)
+    connectives = remove_extra(connectives, table, to_cnf)
+
+    return to_cnf(connectives)
+
+
+def make_decnf_qmc(table, variables):
+    fcnf = make_fcnf(table, variables)
+    tokens, variables = to_tokens(fcnf)
+
+    connectives = get_connectives(tokens)
+    glued_connectives = glue_connectives(connectives)
+    glued_connectives = remove_extra_qmc(connectives, glued_connectives)
+
+    return to_cnf(glued_connectives)
 
 
 def make_numeric_fdnf(table):

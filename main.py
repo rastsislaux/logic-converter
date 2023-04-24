@@ -3,7 +3,8 @@
 import json
 import textwrap
 
-from form_generators import make_fcnf, make_fdnf, make_numeric_fcnf, make_numeric_fdnf, make_index
+from form_generators import make_fcnf, make_fdnf, make_numeric_fcnf, make_numeric_fdnf, make_index, make_dednf_calc, \
+    make_decnf_calc, make_dednf_qmc, make_decnf_qmc, make_dednf_kv
 from lexer import to_tokens
 from reverse_polish_notation import to_rpn
 from truth_table import make_truth_table
@@ -13,6 +14,7 @@ EDUCATION_FILE = "education.json"
 HELP_TEXT = ("What do you want to do?\n"
              "\t/q\t\t\tquit\n"
              "\t/fdnf\t\tget full disjunctive normal form\n"
+             "\t/dednf\t\tget dead-end disjunctive normal form\n"
              "\t/fcnf\t\tget full conjunctive normal form\n"
              "\t/forms\t\tget numeric and index forms\n"
              "\t/tt\t\t\tget truth table\n"
@@ -26,43 +28,36 @@ FAILED_TO_PARSE_TEXT = "Failed to parse formula: "
 
 
 def print_truth_table(table, variables):
+    print(", ".join(variables), ", f(...)")
     for values, result in table:
-        text = ""
-        for variable, value in zip(variables, values):
-            text += f"{variable}={1 if value is True else 0}, "
-        text = text[:-2]
-        text += f": f({','.join(variables)}) = {1 if result is True else 0}"
-        print(text)
+        print(", ".join("1" if value else "0" for value in values), ", f(...)=", "1" if result else "0")
 
 
 def normal_mode():
     def actions_with_formula():
-        print(HELP_TEXT, end="")
+        tt = make_truth_table(rpn, variables)
+        index = make_index(tt)
+        nfdnf = make_numeric_fdnf(tt)
+        nfcnf = make_numeric_fcnf(tt)
+        fdnf = make_fdnf(tt, variables)
+        fcnf = make_fcnf(tt, variables)
+        dednf = make_dednf_calc(tt, variables)
+        dednf_qmc = make_dednf_qmc(tt, variables)
+        dednf_kv = make_dednf_kv(tt, variables)
+        decnf = make_decnf_calc(tt, variables)
+        decnf_qmc = make_decnf_qmc(tt, variables)
 
-        command = input()
+        print(f"f{index} = {nfdnf} = {nfcnf}")
+        print(f"FDNF: {fdnf}")
+        print(f"FCNF: {fcnf}")
+        print(f"Dead-end DNF (Calc): {dednf}")
+        print(f"Dead-end DNF (QMC ): {dednf_qmc}")
+        print(f"Dead-end DNF ( KV ): {dednf_kv}")
+        print(f"Dead-end CNF (Calc): {decnf}")
+        print(f"Dead-end CNF (QMC ): {decnf_qmc}")
+        print_truth_table(tt, variables)
 
-        match command:
-            case "/forms":
-                tt = make_truth_table(rpn, variables)
-                index = make_index(tt)
-                nfdnf = make_numeric_fdnf(tt)
-                nfcnf = make_numeric_fcnf(tt)
-                print(f"Answer: f{index} = {nfdnf} = {nfcnf}")
-            case "/rpn":
-                print(rpn)
-            case "/fdnf":
-                fdnf = make_fdnf(make_truth_table(rpn, variables), variables)
-                print(f"Answer: {fdnf}")
-            case "/fcnf":
-                fcnf = make_fcnf(make_truth_table(rpn, variables), variables)
-                print(f"Answer: {fcnf}")
-            case "/tt":
-                truth_table = make_truth_table(rpn, variables)
-                print_truth_table(truth_table, variables)
-            case "/q":
-                return False
-
-        return True
+        return False
 
     while True:
         try:
