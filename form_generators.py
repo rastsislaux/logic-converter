@@ -1,7 +1,9 @@
 from copy import copy
+from copy import copy
 from functools import reduce
+from itertools import product
 
-from lexer import to_tokens, Token, TokenType
+from lexer import to_tokens, TokenType
 from reverse_polish_notation import to_rpn
 from truth_table import make_truth_table
 
@@ -187,6 +189,61 @@ def make_dednf_qmc(table, variables):
     glued_connectives = remove_extra_qmc(connectives, glued_connectives)
 
     return to_dnf(glued_connectives)
+
+
+# (!x1/\!x2/\x3)\/(!x1/\x2/\!x3)\/(!x1/\x2/\x3)\/(x1/\x2/\!x3)
+# (!x1*!x2*x3)+(!x1*x2*!x3)+(!x1*x2*x3)+(x1*x2*!x3)
+def make_karnaugh_map(table, variables):
+    table = {item[0]: item[1] for item in table}
+
+    def get(x1, x2, x3):
+        return int(table[(bool(x1), bool(x2), bool(x3))])
+
+    result = f"     x2   x2  !x2  !x2\n" \
+             f"     !x3  x3  x3   !x3\n" \
+             f"x1   {get(1, 1, 0)}    {get(1, 1, 1)}   {get(1, 0, 1)}    {get(1, 0, 0)}\n" \
+             f"!x1  {get(0, 1, 0)}    {get(0, 1, 1)}   {get(0, 0, 1)}    {get(0, 0, 0)}"
+
+    return result
+
+
+def make_denf_kv(table, variables, mode):
+    if mode == "cnf":
+        return _make_denf_kv(table, variables, to_cnf, lambda x: not x)
+    elif mode == "dnf":
+        return _make_denf_kv(table, variables, to_dnf, lambda x: x)
+    else:
+        raise RuntimeError("Unknown normal form: " + mode)
+
+
+def _make_denf_kv(table, variables, formulator, map_checker):
+    table_dict = {item[0]: item[1] for item in table}
+
+    def matches(target, variant):
+        for i, _ in enumerate(variant):
+            if variant[i] is not None and variant[i] != target[i]:
+                return False
+        return True
+
+    variants = product([None, True, False], repeat=len(variables))
+    selected_variants = []
+    for variant in variants:
+        if all(map_checker(item[1]) for item in table_dict.items() if matches(item[0], variant)) and \
+                not any(matches(variant, selected_variant) for selected_variant in selected_variants):
+            selected_variants.append(variant)
+
+    connectives = []
+    for variant in selected_variants:
+        connective = []
+        for i, value in enumerate(variant):
+            if value is None:
+                continue
+            connective.append(("" if map_checker(value) else "!") + variables[i])
+        connectives.append(connective)
+
+    connectives = set(tuple(connective) for connective in connectives)
+    connectives = remove_extra(connectives, table, formulator)
+    return formulator(connectives)
 
 
 def make_decnf_calc(table, variables):

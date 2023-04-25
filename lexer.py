@@ -36,6 +36,12 @@ class Token:
     value: str
     type: TokenType
 
+    def for_tree(self):
+        if self.type == TokenType.VAR:
+            return self.value
+        else:
+            return self.type
+
     def __init__(self, atype: TokenType, value=None):
         self.type = atype
         self.value = value

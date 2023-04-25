@@ -4,7 +4,7 @@ import json
 import textwrap
 
 from form_generators import make_fcnf, make_fdnf, make_numeric_fcnf, make_numeric_fdnf, make_index, make_dednf_calc, \
-    make_decnf_calc, make_dednf_qmc, make_decnf_qmc, make_dednf_kv
+    make_decnf_calc, make_dednf_qmc, make_decnf_qmc, _make_denf_kv, make_karnaugh_map, make_denf_kv
 from lexer import to_tokens
 from reverse_polish_notation import to_rpn
 from truth_table import make_truth_table
@@ -43,9 +43,11 @@ def normal_mode():
         fcnf = make_fcnf(tt, variables)
         dednf = make_dednf_calc(tt, variables)
         dednf_qmc = make_dednf_qmc(tt, variables)
-        dednf_kv = make_dednf_kv(tt, variables)
+        dednf_kv = make_denf_kv(tt, variables, "dnf")
         decnf = make_decnf_calc(tt, variables)
         decnf_qmc = make_decnf_qmc(tt, variables)
+        decnf_kv = make_denf_kv(tt, variables, "cnf")
+        karnaugh_map = make_karnaugh_map(tt, variables)
 
         print(f"f{index} = {nfdnf} = {nfcnf}")
         print(f"FDNF: {fdnf}")
@@ -55,6 +57,8 @@ def normal_mode():
         print(f"Dead-end DNF ( KV ): {dednf_kv}")
         print(f"Dead-end CNF (Calc): {decnf}")
         print(f"Dead-end CNF (QMC ): {decnf_qmc}")
+        print(f"Dead-end CNF ( KV ): {decnf_kv}")
+        print(f"Karnaugh map:\n{karnaugh_map}")
         print_truth_table(tt, variables)
 
         return False
