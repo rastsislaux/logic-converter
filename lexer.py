@@ -3,8 +3,8 @@ from enum import Enum, auto
 
 _OP_BRACE = "("
 _CL_BRACE = ")"
-_AND = "/\\"
-_OR = "\\/"
+_AND = "&"
+_OR = "+"
 _EQU = "~"
 _IMP = "->"
 _NEG = "!"
@@ -59,12 +59,10 @@ def to_tokens(raw: str):
             tokens.append(Token(TokenType.OP_BRACE))
         elif raw[i] == _CL_BRACE:
             tokens.append(Token(TokenType.CL_BRACE))
-        elif raw[i:i + 2] == _AND:
+        elif raw[i] == _AND:
             tokens.append(Token(TokenType.AND))
-            i += 1
-        elif raw[i:i + 2] == _OR:
+        elif raw[i] == _OR:
             tokens.append(Token(TokenType.OR))
-            i += 1
         elif raw[i] == _NEG:
             tokens.append(Token(TokenType.NEG))
         elif raw[i] == _EQU:

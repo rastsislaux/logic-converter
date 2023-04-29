@@ -7,8 +7,8 @@ from lexer import to_tokens, TokenType
 from reverse_polish_notation import to_rpn
 from truth_table import make_truth_table
 
-CONJUNCTION = "/\\"
-DISJUNCTION = "\\/"
+CONJUNCTION = "&"
+DISJUNCTION = "+"
 
 
 def make_fcnf(table, variables):
@@ -113,10 +113,12 @@ def glue_connectives(connectives):
         if connective not in seen:
             glued.add(tuple(connective))
 
-    if connectives == glued:
+    check_connectives = sorted(list(sorted(connective) for connective in connectives))
+    check_glued = sorted(list(sorted(connective) for connective in glued))
+    if check_connectives == check_glued:
         return glued
-    else:
-        return glue_connectives(glued)
+
+    return glue_connectives(glued)
 
 
 def remove_extra(connectives, table, formulator):
@@ -142,11 +144,13 @@ def remove_extra(connectives, table, formulator):
 
 
 def to_dnf(filtered_connectives):
-    return "(" + ")\\/(".join(("/\\".join(atom for atom in conn) for conn in filtered_connectives)) + ")"
+    return "(" + (")" + DISJUNCTION + "(")\
+        .join((CONJUNCTION.join(atom for atom in conn) for conn in filtered_connectives)) + ")"
 
 
 def to_cnf(filtered_connectives):
-    return "(" + ")/\\(".join(("\\/".join(atom for atom in conn) for conn in filtered_connectives)) + ")"
+    return "(" + (")" + CONJUNCTION + "(")\
+        .join((DISJUNCTION.join(atom for atom in conn) for conn in filtered_connectives)) + ")"
 
 
 def make_dednf_calc(table, variables):
