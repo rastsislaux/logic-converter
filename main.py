@@ -1,10 +1,8 @@
-# !((!a\/!b)/\(c\/b)/\!(!a/\c))
-
 import json
 import textwrap
 
 from form_generators import make_fcnf, make_fdnf, make_numeric_fcnf, make_numeric_fdnf, make_index, make_dednf_calc, \
-    make_decnf_calc, make_dednf_qmc, make_decnf_qmc, _make_denf_kv, make_karnaugh_map, make_denf_kv
+    make_decnf_calc, make_dednf_qmc, make_decnf_qmc, make_karnaugh_map, make_denf_kv
 from lexer import to_tokens
 from reverse_polish_notation import to_rpn
 from truth_table import make_truth_table
@@ -47,7 +45,6 @@ def normal_mode():
         decnf = make_decnf_calc(tt, variables)
         decnf_qmc = make_decnf_qmc(tt, variables)
         decnf_kv = make_denf_kv(tt, variables, "cnf")
-        karnaugh_map = make_karnaugh_map(tt, variables)
 
         print(f"f{index} = {nfdnf} = {nfcnf}")
         print(f"FDNF: {fdnf}")
@@ -58,10 +55,10 @@ def normal_mode():
         print(f"Dead-end CNF (Calc): {decnf}")
         print(f"Dead-end CNF (QMC ): {decnf_qmc}")
         print(f"Dead-end CNF ( KV ): {decnf_kv}")
-        print(f"Karnaugh map:\n{karnaugh_map}")
+        if len(variables) == 3:
+            karnaugh_map = make_karnaugh_map(tt, variables)
+            print(f"Karnaugh map:\n{karnaugh_map}")
         print_truth_table(tt, variables)
-
-        return False
 
     while True:
         try:
@@ -78,44 +75,8 @@ def normal_mode():
             print(f"{FAILED_TO_PARSE_TEXT}{e}")
             continue
 
-        while actions_with_formula():
-            pass
-
-
-def education_mode():
-    with open(EDUCATION_FILE) as file:
-        qa = json.loads(file.read())
-
-    questions = list(map(lambda x: x['q'], qa))
-    for i, question in enumerate(questions):
-        print(f"{i + 1}. {question}")
-
-    while True:
-        qid = input()
-        if qid == "/q":
-            break
-        try:
-            qid = int(qid)
-        except ValueError as e:
-            print(e)
-            continue
-
-        try:
-            print('\n'.join(textwrap.wrap(qa[qid - 1]['a'], width=150)))
-        except IndexError as e:
-            print(e)
-            continue
-
-
-def main():
-    print(MODE_CHOICE_TEXT, end="")
-
-    match input():
-        case "1":
-            normal_mode()
-        case "2":
-            education_mode()
+        actions_with_formula()
 
 
 if __name__ == '__main__':
-    main()
+    normal_mode()

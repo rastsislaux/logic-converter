@@ -1,4 +1,4 @@
-from copy import copy
+
 from copy import copy
 from functools import reduce
 from itertools import product
@@ -226,6 +226,7 @@ def _make_denf_kv(table, variables, formulator, map_checker):
         return True
 
     variants = product([None, True, False], repeat=len(variables))
+    #variants = sorted(variants, key=lambda x: x.count(None))
     selected_variants = []
     for variant in variants:
         if all(map_checker(item[1]) for item in table_dict.items() if matches(item[0], variant)) and \

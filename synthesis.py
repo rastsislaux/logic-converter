@@ -45,5 +45,36 @@ def ods3_pdnf():
     print_info("ОДС-3 - Перенос",   tran_tt, variables)
 
 
+def pt8421(bias):
+
+    def to_bool(s: str):
+        return s == "1"
+
+    inputs = []
+    outputs = []
+
+    for i in range(0, 10):
+        inp = "{0:04b}".format(i)
+        inp_vect = (inp[0] == "1", inp[1] == "1", inp[2] == "1", inp[3] == "1")
+        inputs.append(inp_vect)
+        out = "{0:04b}".format(i + bias)
+        out_vect = (out[0] == "1", out[1] == "1", out[2] == "1", out[3] == "1")
+        outputs.append(out_vect)
+        print(inp, out)
+
+    for i in range(10, 16):
+        inp = "{0:04b}".format(i)
+        inp_vect = (inp[0] == "1", inp[1] == "1", inp[2] == "1", inp[3] == "1")
+        inputs.append(inp_vect)
+        out_vect = (False, False, False, False)
+        outputs.append(out_vect)
+
+    for i in range(0, 4):
+        table = []
+        for j, values in enumerate(inputs):
+            table.append((values, outputs[j][i]))
+        print(make_dednf_qmc(table, ["X1", "X2", "X3", "X4"]))
+
+
 if __name__ == '__main__':
-    ods3_pdnf()
+    pt8421(1)
